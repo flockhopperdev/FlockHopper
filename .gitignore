@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+build/
+.vite/
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.staging
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Coverage
+coverage/
+
+# TypeScript
+*.tsbuildinfo
+
+# GraphHopper (large binaries and data)
+graphhopper/*.jar
+graphhopper/*.osm.pbf
+graphhopper/graph-cache/
+
+# Archive / old code
+_archive/
+
+# Media (except public assets)
+*.mp4
+*.mov
+*.webm
+*.mp3
+!public/hero-video.mp4
+!public/hero-video.webm
+!public/audio/*.mp3
+!public/usa-animation/reveal.mp4
+!public/usa-animation/reveal.webm
+
+# Misc
+.claude/
+venv/
+__pycache__/

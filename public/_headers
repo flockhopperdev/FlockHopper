@@ -1,0 +1,35 @@
+# =============================================================================
+# SECURITY HEADERS (Applied to all routes)
+# =============================================================================
+/*
+  # Prevent clickjacking - site cannot be embedded in iframes
+  X-Frame-Options: DENY
+  
+  # Prevent MIME type sniffing
+  X-Content-Type-Options: nosniff
+  
+  # Control referrer information
+  Referrer-Policy: strict-origin-when-cross-origin
+  
+  # Restrict browser features
+  Permissions-Policy: camera=(), microphone=(), geolocation=(self), payment=()
+
+# =============================================================================
+# RESOURCE-SPECIFIC HEADERS
+# =============================================================================
+
+# Audio files - ensure proper MIME types and allow range requests
+/audio/*
+  Content-Type: audio/mpeg
+  Accept-Ranges: bytes
+  Access-Control-Allow-Origin: *
+
+# JSON data files
+/*.json
+  Content-Type: application/json
+  Access-Control-Allow-Origin: *
+
+# GeoJSON files for map animation
+/usa-animation/*.geojson
+  Content-Type: application/json
+  Access-Control-Allow-Origin: *

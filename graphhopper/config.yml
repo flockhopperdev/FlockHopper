@@ -1,0 +1,34 @@
+graphhopper:
+  # Input OSM file
+  datareader.file: us-latest.osm.pbf
+  
+  # Where to store the graph cache
+  graph.location: graph-cache
+  
+  # Import settings
+  import.osm.ignored_highways: 
+  
+  # Encoded values for routing
+  graph.encoded_values: car_access, car_average_speed
+  
+  # Routing profiles - use built-in car.json
+  profiles:
+    - name: car
+      custom_model_files: [car.json]
+  
+  # Speed mode (Contraction Hierarchies) - disabled to allow custom models per-request
+  profiles_ch: []
+  
+  # Hybrid mode - disabled to allow custom models per-request
+  profiles_lm: []
+
+# Server settings (must be at root level for Dropwizard)
+server:
+  application_connectors:
+    - type: http
+      port: 8989
+      bind_host: localhost
+  admin_connectors:
+    - type: http
+      port: 8990
+      bind_host: localhost
