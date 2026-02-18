@@ -1,0 +1,328 @@
+openapi: 3.1.0
+info:
+  title: DeFlock Router API
+  version: 1.0.0
+  description: |
+    Camera-aware routing API that provides ALPR-avoidance directions.
+
+    Two endpoints serve different consumers:
+    - **POST /v1/route** — Full route comparison for FlockHopper web (normal vs avoidance route with metrics)
+    - **POST /v1/directions** — Simplified avoidance route for DeFlock mobile (backward-compatible with alprwatch format)
+  license:
+    name: MIT
+    identifier: MIT
+
+servers:
+  - url: http://localhost:3001/api
+    description: Local development
+  - url: https://alprwatch.org/api
+    description: Production
+
+security: [] # Public API — no authentication required
+
+tags:
+  - name: routing
+
+paths:
+  /v1/route:
+    post:
+      operationId: compareRoutes
+      summary: Compare normal and camera-avoidance routes
+      tags:
+        - routing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RouteComparisonRequest'
+      responses:
+        '200':
+          description: Route comparison result
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/RouteComparisonSuccess'
+                  - $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/directions:
+    post:
+      operationId: getDirections
+      summary: Get camera-avoidance directions
+      tags:
+        - routing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DirectionsRequest'
+      responses:
+        '200':
+          description: Avoidance route directions
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/DirectionsSuccess'
+                  - $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    # ── Shared primitives ──────────────────────────────────────────────
+
+    Coordinate:
+      type: object
+      required:
+        - latitude
+        - longitude
+      properties:
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+
+    RouteGeometry:
+      type: object
+      required:
+        - coordinates
+        - distance
+        - duration
+      properties:
+        coordinates:
+          type: array
+          items:
+            type: array
+            items:
+              type: number
+              format: double
+            minItems: 2
+            maxItems: 2
+          description: Array of [longitude, latitude] pairs
+        distance:
+          type: number
+          format: double
+          description: Route distance in meters
+        duration:
+          type: number
+          format: double
+          description: Route duration in seconds
+
+    CameraOnRoute:
+      type: object
+      required:
+        - lat
+        - lon
+        - distance_from_route
+      properties:
+        lat:
+          type: number
+          format: double
+        lon:
+          type: number
+          format: double
+        operator:
+          type: string
+        brand:
+          type: string
+        direction:
+          type: number
+          format: double
+          description: Camera direction in degrees (0-360)
+        distance_from_route:
+          type: number
+          format: double
+          description: Distance from the route in meters
+        is_facing_route:
+          type: boolean
+
+    # ── Profile (for directions endpoint) ──────────────────────────────
+
+    NodeProfile:
+      type: object
+      required:
+        - id
+        - name
+        - tags
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: OSM tag key-value pairs identifying a camera type
+
+    # ── Route comparison (FlockHopper web) ─────────────────────────────
+
+    RouteComparisonRequest:
+      type: object
+      required:
+        - origin
+        - destination
+      properties:
+        origin:
+          $ref: '#/components/schemas/Coordinate'
+        destination:
+          $ref: '#/components/schemas/Coordinate'
+
+    RouteComparisonResult:
+      type: object
+      required:
+        - route
+        - normal_route
+        - cameras_avoided
+        - camera_reduction_percent
+        - normal_camera_count
+        - avoidance_camera_count
+        - distance_increase_percent
+        - strategy
+      properties:
+        route:
+          $ref: '#/components/schemas/RouteGeometry'
+          description: Camera-avoidance route
+        normal_route:
+          $ref: '#/components/schemas/RouteGeometry'
+          description: Normal (shortest) route
+        cameras_avoided:
+          type: integer
+          description: Number of cameras avoided compared to normal route
+        camera_reduction_percent:
+          type: number
+          format: double
+          description: Percentage reduction in camera exposure
+        normal_camera_count:
+          type: integer
+          description: Number of cameras on the normal route
+        avoidance_camera_count:
+          type: integer
+          description: Number of cameras on the avoidance route
+        normal_cameras:
+          type: array
+          items:
+            $ref: '#/components/schemas/CameraOnRoute'
+          description: Cameras encountered on the normal route
+        avoidance_cameras:
+          type: array
+          items:
+            $ref: '#/components/schemas/CameraOnRoute'
+          description: Cameras encountered on the avoidance route
+        distance_increase_percent:
+          type: number
+          format: double
+          description: Percentage increase in distance for the avoidance route
+        duration_increase_percent:
+          type: number
+          format: double
+          description: Percentage increase in duration for the avoidance route
+        strategy:
+          type: string
+          description: Routing strategy used (e.g. "normal", "iterative", "aggressive-polygon")
+
+    RouteComparisonSuccess:
+      type: object
+      required:
+        - ok
+        - result
+      properties:
+        ok:
+          type: boolean
+          const: true
+        result:
+          $ref: '#/components/schemas/RouteComparisonResult'
+
+    # ── Directions (DeFlock mobile) ────────────────────────────────────
+
+    DirectionsRequest:
+      type: object
+      required:
+        - start
+        - end
+      properties:
+        start:
+          $ref: '#/components/schemas/Coordinate'
+        end:
+          $ref: '#/components/schemas/Coordinate'
+        avoidance_distance:
+          type: integer
+          default: 250
+          description: Camera avoidance radius in meters
+        enabled_profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/NodeProfile'
+          description: Camera profiles to avoid (filters which camera types to consider)
+        show_exclusion_zone:
+          type: boolean
+          default: false
+          description: If true, include a GeoJSON MultiPolygon of avoided areas in the response
+
+    DirectionsResult:
+      type: object
+      required:
+        - route
+      properties:
+        route:
+          $ref: '#/components/schemas/RouteGeometry'
+        exclusion_zone:
+          description: GeoJSON Feature with MultiPolygon geometry showing avoided areas (only present when show_exclusion_zone is true)
+
+    DirectionsSuccess:
+      type: object
+      required:
+        - ok
+        - result
+      properties:
+        ok:
+          type: boolean
+          const: true
+        result:
+          $ref: '#/components/schemas/DirectionsResult'
+
+    # ── Error ──────────────────────────────────────────────────────────
+
+    ErrorResponse:
+      type: object
+      required:
+        - ok
+        - error
+      properties:
+        ok:
+          type: boolean
+          const: false
+        error:
+          type: string
+          description: Human-readable error message

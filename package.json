@@ -29,7 +29,11 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "generate-qr": "node scripts/generate-qr-codes.js"
+    "generate-qr": "node scripts/generate-qr-codes.js",
+    "generate:api": "cd api && npx @hey-api/openapi-ts",
+    "generate:api:dart": "cd api && npx @openapitools/openapi-generator-cli generate -c openapi-generator.yaml",
+    "lint:api": "npx @redocly/cli lint api/deflock-router.yaml --config api/redocly.yaml",
+    "preview:api": "npx @redocly/cli preview-docs api/deflock-router.yaml"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
@@ -65,6 +69,10 @@
     "tailwindcss": "^3.4.17",
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.18.2",
+    "@hey-api/client-fetch": "^0.8.0",
+    "@hey-api/openapi-ts": "^0.66.0",
+    "@redocly/cli": "^1.34.0",
+    "prettier": "^3.5.0",
     "vite": "^6.0.5"
   }
 }

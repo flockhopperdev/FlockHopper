@@ -1,0 +1,16 @@
+# AUTO-GENERATED FILE — regenerate with: npx @openapitools/openapi-generator-cli generate -c openapi-generator.yaml
+# Manual edits to this pubspec are needed after regeneration (SDK constraint, dependency ranges).
+
+name: deflock_router_client
+version: 1.0.0
+description: Generated client for the DeFlock Router API
+publish_to: none
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  collection: ^1.18.0
+  http: ^1.2.0
+  intl: any
+  meta: ^1.11.0

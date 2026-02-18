@@ -1,0 +1,5 @@
+inputSpec: deflock-router.yaml
+generatorName: dart
+outputDir: ../packages/deflock_router_client
+additionalProperties:
+  pubName: deflock_router_client
