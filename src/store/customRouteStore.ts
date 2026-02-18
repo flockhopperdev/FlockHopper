@@ -1,9 +1,8 @@
 import { create } from 'zustand';
-import type { Location, Route, CameraOnRoute, ALPRCamera } from '../types';
-import { calculateAvoidanceRouteWithWaypoints } from '../services/graphHopperService';
-import { findCamerasOnRoute, haversineDistance } from '../utils/geo';
+import type { Location, Route, CameraOnRoute } from '../types';
+import { haversineDistance } from '../utils/geo';
+import { calculateCustomRoute } from '../services/apiClient';
 import { useRouteStore } from './routeStore';
-import { ZONE_SAFETY_MULTIPLIERS } from '../services/routingConfig';
 
 interface CustomRouteState {
   // Mode management
@@ -31,7 +30,7 @@ interface CustomRouteState {
   reorderWaypoints: (fromIndex: number, toIndex: number) => void;
   setOrigin: (location: Location) => void;
   setDestination: (location: Location) => void;
-  recalculateRoute: (cameras: ALPRCamera[]) => Promise<void>;
+  recalculateRoute: () => Promise<void>;
   undo: () => void;
   clearWaypoints: () => void;
   applyCustomRoute: () => Route | null;
@@ -343,7 +342,7 @@ export const useCustomRouteStore = create<CustomRouteState>((set, get) => ({
     }
   },
 
-  recalculateRoute: async (cameras: ALPRCamera[]) => {
+  recalculateRoute: async () => {
     const { waypoints: initialWaypoints, isRecalculating } = get();
 
     // Guard against concurrent recalculations
@@ -368,59 +367,17 @@ export const useCustomRouteStore = create<CustomRouteState>((set, get) => ({
       // Get user's avoidance config from routeStore for consistency
       const { avoidanceConfig } = useRouteStore.getState();
 
-      // Filter cameras to the route bounding box for efficiency
-      // Use the same buffer as analysis mode (0.5° ~55km) for consistency
-      const lats = waypointsSnapshot.map(wp => wp.lat);
-      const lons = waypointsSnapshot.map(wp => wp.lon);
-      const bufferDegrees = avoidanceConfig.bboxBufferDegrees; // Match analysis mode
-      const minLat = Math.min(...lats) - bufferDegrees;
-      const maxLat = Math.max(...lats) + bufferDegrees;
-      const minLon = Math.min(...lons) - bufferDegrees;
-      const maxLon = Math.max(...lons) + bufferDegrees;
+      console.log(`Custom route: calling API with ${intermediateWaypoints.length} waypoints`);
 
-      const relevantCameras = cameras.filter(c =>
-        c.lat >= minLat && c.lat <= maxLat &&
-        c.lon >= minLon && c.lon <= maxLon
-      );
-
-      console.log(`Custom route: ${cameras.length} → ${relevantCameras.length} cameras in area`);
-
-      // Build zone options for directional zones support
-      const zoneOptions = {
-        useDirectionalZones: avoidanceConfig.useDirectionalZones ?? false,
-        cameraFovDegrees: avoidanceConfig.cameraFovDegrees,
-        backBufferMeters: avoidanceConfig.backBufferMeters,
-      };
-
-      // Avoidance zones must be LARGER than detection radius to ensure
-      // routes that avoid zones are outside the detection buffer.
-      // Use avoidance routing with waypoints, passing user's config for consistency
-      const route = await calculateAvoidanceRouteWithWaypoints(
+      const result = await calculateCustomRoute(
         origin,
         destination,
-        intermediateWaypoints.map(wp => [wp.lat, wp.lon] as [number, number]),
-        relevantCameras,
-        'auto',
-        {
-          cameraBlockRadius: avoidanceConfig.cameraDistanceMeters * ZONE_SAFETY_MULTIPLIERS.block,
-          cameraPenaltyRadius: avoidanceConfig.cameraDistanceMeters * ZONE_SAFETY_MULTIPLIERS.penalty,
-          maxDetourFactor: 1 + (avoidanceConfig.maxDetourPercent / 100),
-        },
-        zoneOptions
+        intermediateWaypoints,
+        avoidanceConfig
       );
 
       // Add waypoints to route object
-      route.waypoints = intermediateWaypoints;
-
-      // Use user's cameraDistanceMeters for consistency
-      // When directional zones are enabled, only count cameras facing the route
-      const useDirectional = avoidanceConfig.useDirectionalZones ?? false;
-      const camerasOnRoute = findCamerasOnRoute(
-        relevantCameras,
-        route.geometry,
-        avoidanceConfig.cameraDistanceMeters,
-        useDirectional
-      );
+      result.route.waypoints = intermediateWaypoints;
 
       // Verify waypoints haven't changed during async calculation
       const { waypoints: currentWaypoints } = get();
@@ -434,12 +391,12 @@ export const useCustomRouteStore = create<CustomRouteState>((set, get) => ({
       if (waypointsChanged) {
         // Waypoints changed during calculation - discard stale result and retry
         set({ isRecalculating: false });
-        return get().recalculateRoute(cameras);
+        return get().recalculateRoute();
       }
 
       set({
-        customRoute: route,
-        camerasOnRoute,
+        customRoute: result.route,
+        camerasOnRoute: result.camerasOnRoute,
         isRecalculating: false,
       });
     } catch (error) {

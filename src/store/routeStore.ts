@@ -4,16 +4,23 @@ import type {
   Route,
   RouteComparison,
   CameraOnRoute,
-  ALPRCamera,
   CameraAvoidanceConfig,
 } from '../types';
-import { 
-  calculateCameraAwareRoute,
-  DEFAULT_AVOIDANCE_CONFIG,
-} from '../services/cameraAwareRouting';
+import { calculateRoute } from '../services/apiClient';
 
 // Location picking mode - which field is waiting for a map click
 export type LocationPickingMode = 'origin' | 'destination' | null;
+
+const DEFAULT_AVOIDANCE_CONFIG: CameraAvoidanceConfig = {
+  avoidanceWeight: 0.7,
+  maxDetourPercent: 100,
+  cameraDistanceMeters: 75,
+  costing: 'auto',
+  maxIterations: 15,
+  useIterativeWaypoints: false,
+  bboxBufferDegrees: 0.5,
+  useDirectionalZones: true,
+};
 
 interface RouteState {
   origin: Location | null;
@@ -26,17 +33,17 @@ interface RouteState {
   isCalculating: boolean;
   error: string | null;
   activeRoute: 'normal' | 'avoidance';
-  
+
   // Camera-aware routing config
   avoidanceConfig: CameraAvoidanceConfig;
 
   // Location picking mode - for "choose on map" feature
   pickingLocation: LocationPickingMode;
-  
+
   // Actions
   setOrigin: (location: Location | null) => void;
   setDestination: (location: Location | null) => void;
-  calculateRoutes: (cameras: ALPRCamera[]) => Promise<void>;
+  calculateRoutes: () => Promise<void>;
   clearRoutes: () => void;
   setActiveRoute: (type: 'normal' | 'avoidance') => void;
   swapLocations: () => void;
@@ -44,7 +51,7 @@ interface RouteState {
   setMaxDetour: (percent: number) => void;
   setCameraDistance: (meters: number) => void;
   setUseDirectionalZones: (enabled: boolean) => void;
-  
+
   // Location picking actions
   startPickingLocation: (mode: 'origin' | 'destination') => void;
   cancelPickingLocation: () => void;
@@ -85,7 +92,7 @@ export const useRouteStore = create<RouteState>((set, get) => ({
     });
   },
 
-  calculateRoutes: async (cameras: ALPRCamera[]) => {
+  calculateRoutes: async () => {
     const { origin, destination, avoidanceConfig, isCalculating } = get();
 
     // Guard against concurrent calculations
@@ -101,25 +108,19 @@ export const useRouteStore = create<RouteState>((set, get) => ({
     set({ isCalculating: true, error: null });
 
     try {
-      console.log('=== Starting Camera-Aware Routing ===');
+      console.log('=== Starting Camera-Aware Routing (via API) ===');
       console.log(`Avoidance weight: ${avoidanceConfig.avoidanceWeight}`);
       console.log(`Max detour: ${avoidanceConfig.maxDetourPercent}%`);
-      
-      // Use the new camera-aware routing engine
-      const result = await calculateCameraAwareRoute(
-        origin,
-        destination,
-        cameras,
-        avoidanceConfig
-      );
-      
+
+      const result = await calculateRoute(origin, destination, avoidanceConfig);
+
       console.log('\n=== Routing Complete ===');
       console.log(`Normal route: ${result.normalRoute.camerasOnRoute.length} cameras`);
       console.log(`Avoidance route: ${result.avoidanceRoute.camerasOnRoute.length} cameras`);
       console.log(`Strategy used: ${result.avoidanceRoute.strategy}`);
       console.log(`Camera reduction: ${result.improvement.camerasAvoided} (${result.improvement.cameraReductionPercent.toFixed(0)}%)`);
       console.log(`Distance increase: ${(result.improvement.distanceIncrease / 1609.34).toFixed(2)} mi (${result.improvement.distanceIncreasePercent.toFixed(1)}%)`);
-      
+
       // Build comparison for UI compatibility
       const comparison: RouteComparison = {
         distanceIncrease: result.improvement.distanceIncrease,
@@ -180,7 +181,7 @@ export const useRouteStore = create<RouteState>((set, get) => ({
       error: null,
     });
   },
-  
+
   setAvoidanceWeight: (weight: number) => {
     const { avoidanceConfig } = get();
     set({
@@ -229,11 +230,11 @@ export const useRouteStore = create<RouteState>((set, get) => ({
   startPickingLocation: (mode: 'origin' | 'destination') => {
     set({ pickingLocation: mode });
   },
-  
+
   cancelPickingLocation: () => {
     set({ pickingLocation: null });
   },
-  
+
   setPickedLocation: (location: Location) => {
     const { pickingLocation } = get();
     if (pickingLocation === 'origin') {

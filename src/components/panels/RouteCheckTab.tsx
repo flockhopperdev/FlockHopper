@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useRouteStore, useCameraStore } from '../../store';
+import { useRouteStore } from '../../store';
 import { AddressSearch } from '../inputs/AddressSearch';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 
@@ -20,10 +20,8 @@ export function RouteCheckTab() {
     error,
   } = useRouteStore();
 
-  const { cameras } = useCameraStore();
-
   const handleCalculate = () => {
-    calculateRoutes(cameras);
+    calculateRoutes();
   };
 
   const canCalculate = origin && destination && !isCalculating;

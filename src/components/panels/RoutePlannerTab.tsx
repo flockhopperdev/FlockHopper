@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useRouteStore, useCameraStore, useCustomRouteStore } from '../../store';
+import { useRouteStore, useCustomRouteStore } from '../../store';
 import { AddressSearch } from '../inputs/AddressSearch';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { downloadGPX } from '../../services/gpxService';
@@ -32,11 +32,10 @@ export function RoutePlannerTab() {
     cancelPickingLocation,
   } = useRouteStore();
 
-  const { cameras } = useCameraStore();
   const { enterCustomMode } = useCustomRouteStore();
 
   const handleCalculate = () => {
-    calculateRoutes(cameras);
+    calculateRoutes();
   };
 
   const handleExportGPX = () => {

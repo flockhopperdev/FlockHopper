@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
-import { useCustomRouteStore, useCameraStore, useRouteStore } from '../../store';
+import { useCustomRouteStore, useRouteStore } from '../../store';
 import { AddressSearch } from '../inputs/AddressSearch';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { formatDistance, formatDuration } from '../../utils/geo';
@@ -26,8 +26,6 @@ export function CustomRoutePanel() {
     undoStack,
   } = useCustomRouteStore();
 
-  const { cameras } = useCameraStore();
-  
   // Get avoidance settings from main route store
   const {
     avoidanceConfig,
@@ -44,9 +42,9 @@ export function CustomRoutePanel() {
       clearTimeout(recalcTimeoutRef.current);
     }
     recalcTimeoutRef.current = setTimeout(() => {
-      recalculateRoute(cameras);
+      recalculateRoute();
     }, 300);
-  }, [recalculateRoute, cameras]);
+  }, [recalculateRoute]);
 
   // Recalculate when waypoints or avoidance settings change
   useEffect(() => {

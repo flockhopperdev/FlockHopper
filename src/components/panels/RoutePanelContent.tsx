@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { useRouteStore, useCameraStore, useCustomRouteStore, useMapStore } from '../../store';
+import { useRouteStore, useCustomRouteStore, useMapStore } from '../../store';
 import { AddressSearch } from '../inputs/AddressSearch';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { downloadGPX } from '../../services/gpxService';
@@ -46,7 +46,6 @@ export function RoutePanelContent({ onExpandSheet, onCollapseSheet, isBottomShee
     cancelPickingLocation,
   } = useRouteStore();
 
-  const { cameras } = useCameraStore();
   const { isCustomizing, enterCustomMode } = useCustomRouteStore();
   const { flyTo } = useMapStore();
 
@@ -60,7 +59,7 @@ export function RoutePanelContent({ onExpandSheet, onCollapseSheet, isBottomShee
   };
 
   const handleCalculate = () => {
-    calculateRoutes(cameras);
+    calculateRoutes();
   };
 
   const openNamingModal = () => {

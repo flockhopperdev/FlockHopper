@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useRouteStore, useCameraStore } from '../../store';
+import { useRouteStore } from '../../store';
 import { AddressSearch } from '../inputs/AddressSearch';
 import { RouteComparisonPanel } from './RouteComparison';
 import { LoadingSpinner } from '../common/LoadingSpinner';
@@ -26,10 +26,8 @@ export function ControlPanel() {
     setActiveRoute,
   } = useRouteStore();
 
-  const { cameras } = useCameraStore();
-
   const handleCalculate = () => {
-    calculateRoutes(cameras);
+    calculateRoutes();
   };
 
   const handleExportGPX = () => {
