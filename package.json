@@ -31,6 +31,7 @@
     "preview": "vite preview",
     "generate-qr": "node scripts/generate-qr-codes.js",
     "generate:api": "cd api && npx @hey-api/openapi-ts",
+    "generate:api:dart": "cd api && npx @openapitools/openapi-generator-cli generate -c openapi-generator.yaml",
     "lint:api": "npx @redocly/cli lint api/deflock-router.yaml --config api/redocly.yaml",
     "preview:api": "npx @redocly/cli preview-docs api/deflock-router.yaml"
   },
